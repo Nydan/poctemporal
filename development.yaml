@@ -1,0 +1,8 @@
+tls:
+  cert-pool-path: "./certs/ca.cert"
+  cert-path: "./certs/client.pem"
+  key-path: "./certs/client.key"
+temporal:
+  hostport: "localhost:7233"
+  namespace: "deposit_fiat"
+  server-name: "tls-sample"
