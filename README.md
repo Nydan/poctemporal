@@ -3,6 +3,8 @@
 This repository is a sample worker and http server for triggering Temporal
 workflow. The application implement TLS for connecting to Temporal cluster.
 
+## Separated Worker and Workflow trigger
+
 To run the POC:
 1. Generate certificate by following [tls-simple](https://github.com/temporalio/samples-server/tree/main/tls/tls-simple).
 1. Copy the generated `/certs` folder to this root repo.
@@ -31,3 +33,11 @@ To run the POC:
         "UserID": "nydan"
     }'
     ```
+
+## Apps with http server and workers
+
+Running binary in `./apps` already run the workers and the http server.
+
+```
+go run apps/main.go
+```
