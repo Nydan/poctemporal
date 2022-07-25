@@ -1,15 +1,26 @@
 package poctemporal
 
 import (
-	"log"
+	"context"
 	"time"
 
 	"github.com/google/uuid"
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
 
-func DepositWorkflow(ctx workflow.Context, r DepositRequest) (Deposit, error) {
+type DepositWorkflowApp struct {
+	Deposit []Deposit
+}
+
+func NewDepositWorkflow() *DepositWorkflowApp {
+	return &DepositWorkflowApp{
+		Deposit: []Deposit{},
+	}
+}
+
+func (dw *DepositWorkflowApp) DepositWorkflow(ctx workflow.Context, r DepositRequest) (Deposit, error) {
 	retryPolicy := &temporal.RetryPolicy{
 		InitialInterval:    time.Second,
 		BackoffCoefficient: 2.0,
@@ -29,19 +40,19 @@ func DepositWorkflow(ctx workflow.Context, r DepositRequest) (Deposit, error) {
 
 	var err error
 	var trx Transaction
-	txActivity := workflow.ExecuteActivity(ctx, CreateTransaction, r)
+	txActivity := workflow.ExecuteActivity(ctx, dw.CreateTransaction, r)
 	if err = txActivity.Get(ctx, &trx); err != nil {
 		return Deposit{}, err
 	}
 
 	var w Wallet
-	walletActivity := workflow.ExecuteActivity(ctx, CreateWallet, trx)
+	walletActivity := workflow.ExecuteActivity(ctx, dw.CreateWallet, trx)
 	if err = walletActivity.Get(ctx, &w); err != nil {
 		return Deposit{}, err
 	}
 
 	var d Deposit
-	depositActivity := workflow.ExecuteActivity(ctx, CreateDeposit, w)
+	depositActivity := workflow.ExecuteActivity(ctx, dw.CreateDeposit, w)
 	if err = depositActivity.Get(ctx, &d); err != nil {
 		return Deposit{}, err
 	}
@@ -56,8 +67,7 @@ type Transaction struct {
 }
 
 // transaction.Create
-func CreateTransaction(r DepositRequest) (Transaction, error) {
-	log.Println("create transaction: ", time.Now())
+func (dw *DepositWorkflowApp) CreateTransaction(ctx context.Context, r DepositRequest) (Transaction, error) {
 	return Transaction{
 		TxID:   uuid.NewString(),
 		UserID: r.UserID,
@@ -73,8 +83,7 @@ type Wallet struct {
 }
 
 // wallet.Create
-func CreateWallet(t Transaction) (Wallet, error) {
-	log.Println("create wallet: ", time.Now())
+func (dw *DepositWorkflowApp) CreateWallet(ctx context.Context, t Transaction) (Wallet, error) {
 	return Wallet{
 		WalletID: uuid.NewString(),
 		TxID:     t.TxID,
@@ -84,21 +93,25 @@ func CreateWallet(t Transaction) (Wallet, error) {
 }
 
 type Deposit struct {
-	DepositID string
-	WalletID  string
-	TxID      string
-	Amount    int
-	UserID    string
+	WorkflowID string
+	DepositID  string
+	WalletID   string
+	TxID       string
+	Amount     int
+	UserID     string
 }
 
 // deposit.Create
-func CreateDeposit(w Wallet) (Deposit, error) {
-	log.Println("create deposit: ", time.Now())
-	return Deposit{
-		DepositID: uuid.NewString(),
-		WalletID:  w.WalletID,
-		TxID:      w.TxID,
-		Amount:    w.Amount,
-		UserID:    w.UserID,
-	}, nil
+func (dw *DepositWorkflowApp) CreateDeposit(ctx context.Context, w Wallet) (Deposit, error) {
+	info := activity.GetInfo(ctx)
+	deposit := Deposit{
+		WorkflowID: info.WorkflowExecution.ID,
+		DepositID:  uuid.NewString(),
+		WalletID:   w.WalletID,
+		TxID:       w.TxID,
+		Amount:     w.Amount,
+		UserID:     w.UserID,
+	}
+	dw.Deposit = append(dw.Deposit, deposit)
+	return deposit, nil
 }

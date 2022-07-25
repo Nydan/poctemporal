@@ -16,13 +16,9 @@ To run the POC:
     ```
     It run the `tctl` command from the cluster with TLS. Replace the 
     `{namespace}` value and change the configuration in `development.yaml`.
-1. Run the worker:
+1. Run the app:
     ```
-    go run worker/main.go
-    ```
-1. Run the http server:
-    ```
-    go run start/main.go
+    go run apps/main.go
     ```
 1. Try to create API request:
     ```
@@ -33,11 +29,3 @@ To run the POC:
         "UserID": "nydan"
     }'
     ```
-
-## Apps with http server and workers
-
-Running binary in `./apps` already run the workers and the http server.
-
-```
-go run apps/main.go
-```
