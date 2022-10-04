@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"io/ioutil"
 	"log"
@@ -61,35 +59,9 @@ type App struct {
 }
 
 func newApp(cfg poctemporal.Config) (*App, error) {
-	identity := uuid.NewString()
-	log.Printf("Identity: %s", identity)
-
-	ca, err := ioutil.ReadFile(cfg.TLS.CertPoolPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(ca) {
-		log.Fatal("Failed to append ca certs", err)
-	}
-
-	certTLS, err := tls.LoadX509KeyPair(cfg.TLS.CertPath, cfg.TLS.KeyPath)
-	if err != nil {
-		log.Fatal("openTLS", err)
-	}
-
 	c, err := client.Dial(client.Options{
 		HostPort:  cfg.Temporal.HostPort,
 		Namespace: cfg.Temporal.Namespace,
-		Identity:  identity,
-		ConnectionOptions: client.ConnectionOptions{
-			TLS: &tls.Config{
-				Certificates: []tls.Certificate{certTLS},
-				RootCAs:      certPool,
-				ServerName:   cfg.Temporal.ServerName,
-			},
-		},
 	})
 	if err != nil {
 		return &App{}, err
